@@ -18,7 +18,6 @@ pipeline {
                 checkout scm
             }
         }
-        // Rest of your stages...
         stage('Install Dependencies & Run Tests') {
             agent {
                 docker {
@@ -29,7 +28,7 @@ pipeline {
             steps {
                 sh 'pip install -r requirements.txt'
                 sh 'pip install pytest flake8 black'
-                sh 'pytest || true' 
+                sh 'pytest || true'
                 sh 'flake8 . || true'
                 sh 'black --check . || true'
             }
@@ -43,11 +42,11 @@ pipeline {
             steps {
                 sh '''
                 docker network create ml_network || true
-                docker stop fastapi_mlflow_app || true
-                docker rm fastapi_mlflow_app || true
-                docker run -d --name fastapi_mlflow_app \
+                docker stop flask_mlflow_app || true
+                docker rm flask_mlflow_app || true
+                docker run -d --name flask_mlflow_app \
                     --network ml_network \
-                    -p 8000:8000 \
+                    -p 5001:5001 \
                     ${IMAGE_NAME}
                 '''
             }
