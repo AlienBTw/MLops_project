@@ -1,17 +1,24 @@
 pipeline {
     agent any
-
+    
+    options {
+        // Clean workspace before each build
+        skipDefaultCheckout(true)
+    }
+    
     environment {
         DOCKER_USERNAME = "yourname"
         IMAGE_NAME = "ahmed_louay_araour_4ds2_mlops"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Clean Workspace') {
             steps {
+                cleanWs()
                 checkout scm
             }
         }
+        // Rest of your stages...
         stage('Install Dependencies & Run Tests') {
             agent {
                 docker {
@@ -22,9 +29,9 @@ pipeline {
             steps {
                 sh 'pip install -r requirements.txt'
                 sh 'pip install pytest flake8 black'
-                sh 'pytest || true'  // Run tests but don't fail if tests fail
-                sh 'flake8 . || true'  // Run linting but don't fail if linting fails
-                sh 'black --check . || true'  // Run formatting check but don't fail if formatting fails
+                sh 'pytest || true' 
+                sh 'flake8 . || true'
+                sh 'black --check . || true'
             }
         }
         stage('Build Docker Image') {
