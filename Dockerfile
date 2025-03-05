@@ -27,5 +27,8 @@ RUN if [ ! -f "src/__init__.py" ]; then touch src/__init__.py; fi
 # Expose port for FastAPI
 EXPOSE 8000
 
+# Set the MLflow tracking URI to connect to the host machine's MLflow server.
+ENV MLFLOW_TRACKING_URI="http://host.docker.internal:5000"
+
 # Command to run the FastAPI application
 CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]
