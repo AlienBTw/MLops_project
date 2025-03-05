@@ -11,37 +11,37 @@ FASTAPI_PORT = 8000
 
 # Install all dependencies from requirements.txt (manual install)
 install:
-	pip install -r requirements.txt
+	python3 -m pip install -r requirements.txt
 
 # Target to check and install dependencies.
 install-deps:
 	@echo "Checking and installing required dependencies..."
-	pip install -r requirements.txt
+	python3 -m pip install -r requirements.txt
 
 # Run the 'prepare' step using the main script in the src folder.
 prepare:
-	python src/main.py --function prepare --dataset datasets/churn-bigml-80.csv
+	python3 src/main.py --function prepare --dataset datasets/churn-bigml-80.csv
 
 # Run the 'train' step using the main script in the src folder.
 train:
-	python src/main.py --function train --dataset datasets/churn-bigml-80.csv
+	python3 src/main.py --function train --dataset datasets/churn-bigml-80.csv
 
 # Run the 'evaluate' step using the main script in the src folder.
 evaluate:
-	python src/main.py --function evaluate --dataset datasets/churn-bigml-80.csv
+	python3 src/main.py --function evaluate --dataset datasets/churn-bigml-80.csv
 
 # Run the 'save' step using the main script in the src folder.
 save:
-	python src/main.py --function save --dataset datasets/churn-bigml-80.csv --model_filename decision_tree_model.joblib
+	python3 src/main.py --function save --dataset datasets/churn-bigml-80.csv --model_filename decision_tree_model.joblib
 
 # Run the 'load' step using the main script in the src folder.
 load:
-	python src/main.py --function load --model_filename decision_tree_model.joblib
+	python3 src/main.py --function load --model_filename decision_tree_model.joblib
 
 # Run the full pipeline (all steps) using the main script in the src folder.
 # This target first checks dependencies, then runs the pipeline.
 all: install-deps
-	python src/main.py --function all --dataset datasets/churn-bigml-80.csv --model_filename decision_tree_model.joblib
+	python3 src/main.py --function all --dataset datasets/churn-bigml-80.csv --model_filename decision_tree_model.joblib
 
 # Run basic tests (requires pytest).
 tests:
@@ -86,7 +86,7 @@ check-mlflow:
 mlflow-build:
 	@echo "Building local MLflow image..."
 	@echo 'FROM python:3.9-slim' > MLflowDockerfile
-	@echo 'RUN pip install mlflow==2.7.1 psycopg2-binary' >> MLflowDockerfile
+	@echo 'RUN python3 -m pip install mlflow==2.7.1 psycopg2-binary' >> MLflowDockerfile
 	@echo 'EXPOSE 5000' >> MLflowDockerfile
 	@echo 'WORKDIR /mlflow' >> MLflowDockerfile
 	@echo 'CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000"]' >> MLflowDockerfile
@@ -171,7 +171,7 @@ run-with-local-mlflow: network docker-build
 # New target to run the Flask application.
 flask:
 	@echo "Starting Flask application..."
-	python src/app_flask.py
+	python3 src/app_flask.py
 
 # Stop all containers
 stop:
