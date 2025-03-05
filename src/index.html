@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Churn Prediction API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Churn Prediction API</h1>
+        
+        <h2>Make a Prediction</h2>
+        <form id="predict-form">
+            <div class="form-group">
+                <label for="State">State:</label>
+                <input type="text" id="State" name="State" value="KS" required>
+            </div>
+            <div class="form-group">
+                <label for="Area_code">Area Code:</label>
+                <input type="text" id="Area_code" name="Area_code" value="415" required>
+            </div>
+            <div class="form-group">
+                <label for="International_plan">International Plan (Yes/No):</label>
+                <input type="text" id="International_plan" name="International_plan" value="No" required>
+            </div>
+            <div class="form-group">
+                <label for="Voice_mail_plan">Voice Mail Plan (Yes/No):</label>
+                <input type="text" id="Voice_mail_plan" name="Voice_mail_plan" value="Yes" required>
+            </div>
+            <div class="form-group">
+                <label for="Number_vmail_messages">Number of Voicemail Messages:</label>
+                <input type="number" id="Number_vmail_messages" name="Number_vmail_messages" value="5" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_day_minutes">Total Day Minutes:</label>
+                <input type="number" step="0.01" id="Total_day_minutes" name="Total_day_minutes" value="265.1" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_day_calls">Total Day Calls:</label>
+                <input type="number" id="Total_day_calls" name="Total_day_calls" value="110" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_day_charge">Total Day Charge:</label>
+                <input type="number" step="0.01" id="Total_day_charge" name="Total_day_charge" value="45.07" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_eve_minutes">Total Evening Minutes:</label>
+                <input type="number" step="0.01" id="Total_eve_minutes" name="Total_eve_minutes" value="197.4" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_eve_calls">Total Evening Calls:</label>
+                <input type="number" id="Total_eve_calls" name="Total_eve_calls" value="99" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_eve_charge">Total Evening Charge:</label>
+                <input type="number" step="0.01" id="Total_eve_charge" name="Total_eve_charge" value="16.78" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_night_minutes">Total Night Minutes:</label>
+                <input type="number" step="0.01" id="Total_night_minutes" name="Total_night_minutes" value="244.7" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_night_calls">Total Night Calls:</label>
+                <input type="number" id="Total_night_calls" name="Total_night_calls" value="91" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_night_charge">Total Night Charge:</label>
+                <input type="number" step="0.01" id="Total_night_charge" name="Total_night_charge" value="11.01" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_intl_minutes">Total International Minutes:</label>
+                <input type="number" step="0.01" id="Total_intl_minutes" name="Total_intl_minutes" value="10.0" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_intl_calls">Total International Calls:</label>
+                <input type="number" id="Total_intl_calls" name="Total_intl_calls" value="3" required>
+            </div>
+            <div class="form-group">
+                <label for="Total_intl_charge">Total International Charge:</label>
+                <input type="number" step="0.01" id="Total_intl_charge" name="Total_intl_charge" value="2.70" required>
+            </div>
+            <div class="form-group">
+                <label for="Customer_service_calls">Customer Service Calls:</label>
+                <input type="number" id="Customer_service_calls" name="Customer_service_calls" value="1" required>
+            </div>
+            <button type="submit">Predict</button>
+        </form>
+        <div class="result" id="prediction-result"></div>
+
+    <!--    <h2>Retrain the Model</h2>
+        <form id="retrain-form">
+            <div class="form-group">
+                <label for="max_depth">Max Depth:</label>
+                <input type="number" id="max_depth" name="max_depth" value="5" required>
+            </div>
+            <button type="submit">Retrain</button>
+        </form>
+        <div class="result" id="retrain-result"></div>-->
+    </div>
+
+    <script>
+        document.getElementById('predict-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            document.getElementById('prediction-result').innerText = result.prediction || result.error;
+        });
+
+        document.getElementById('retrain-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            const response = await fetch('/retrain', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            document.getElementById('retrain-result').innerText = JSON.stringify(result, null, 2);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+<script>
+    document.getElementById('retrain-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Convert max_depth to an integer
+        data.max_depth = parseInt(data.max_depth, 10);
+
+        const response = await fetch('/retrain', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        document.getElementById('retrain-result').innerText = JSON.stringify(result, null, 2);
+    });
+</script>
