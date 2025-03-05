@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        // Update these variables as needed.
-        DOCKER_USERNAME = "yourname"      // Replace with your Docker username if necessary.
+        DOCKER_USERNAME = "yourname"
         IMAGE_NAME = "ahmed_louay_araour_4ds2_mlops"
     }
 
@@ -15,7 +14,6 @@ pipeline {
         }
         stage('Install Dependencies') {
             steps {
-                // Installing dependencies using the Makefile target.
                 sh 'make install-deps'
             }
         }
@@ -37,7 +35,6 @@ pipeline {
         }
         stage('Deploy Containers') {
             steps {
-                // For example, to deploy the FastAPI container with MLflow connection.
                 sh 'make docker-run'
             }
         }
@@ -45,7 +42,6 @@ pipeline {
     
     post {
         always {
-            // Clean up the workspace after the build.
             cleanWs()
         }
         success {
