@@ -28,4 +28,4 @@ RUN if [ ! -f "src/__init__.py" ]; then touch src/__init__.py; fi
 EXPOSE 8000
 
 # Command to run the FastAPI application
-CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"]
+CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]
