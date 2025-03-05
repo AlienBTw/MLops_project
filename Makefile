@@ -1,4 +1,4 @@
-.PHONY: install install-deps prepare train evaluate save load all tests lint format ci clean fastapi mlflow-ui docker-build docker-run docker-push network mlflow-container run-all stop logs docker-clean check-mlflow mlflow-build mlflow-local run-with-local-mlflow flask
+.PHONY: setup-venv install install-deps prepare train evaluate save load all tests lint format ci clean fastapi mlflow-ui docker-build docker-run docker-push network mlflow-container run-all stop logs docker-clean check-mlflow mlflow-build mlflow-local run-with-local-mlflow flask
 
 # Docker configuration
 DOCKER_USERNAME ?= yourname
@@ -9,51 +9,59 @@ FASTAPI_CONTAINER = fastapi_mlflow_app
 MLFLOW_PORT = 5000
 FASTAPI_PORT = 8000
 
-# Install all dependencies from requirements.txt (manual install)
-install:
-	python3 -m pip install -r requirements.txt
+# Setup virtual environment
+setup-venv:
+	@if [ ! -d "venv" ]; then \
+		echo "Creating virtual environment..."; \
+		python3 -m venv venv; \
+		./venv/bin/python -m pip install --upgrade pip; \
+	else \
+		echo "Virtual environment already exists."; \
+	fi
 
-# Target to check and install dependencies.
-install-deps:
-	@echo "Checking and installing required dependencies..."
-	python3 -m pip install -r requirements.txt
+# Install all dependencies from requirements.txt within virtual environment
+install-deps: setup-venv
+	@echo "Checking and installing required dependencies in virtual environment..."
+	./venv/bin/python -m pip install --break-system-packages -r requirements.txt
+
+# Shortcut target to install dependencies manually
+install: install-deps
 
 # Run the 'prepare' step using the main script in the src folder.
-prepare:
-	python3 src/main.py --function prepare --dataset datasets/churn-bigml-80.csv
+prepare: install-deps
+	./venv/bin/python src/main.py --function prepare --dataset datasets/churn-bigml-80.csv
 
 # Run the 'train' step using the main script in the src folder.
-train:
-	python3 src/main.py --function train --dataset datasets/churn-bigml-80.csv
+train: install-deps
+	./venv/bin/python src/main.py --function train --dataset datasets/churn-bigml-80.csv
 
 # Run the 'evaluate' step using the main script in the src folder.
-evaluate:
-	python3 src/main.py --function evaluate --dataset datasets/churn-bigml-80.csv
+evaluate: install-deps
+	./venv/bin/python src/main.py --function evaluate --dataset datasets/churn-bigml-80.csv
 
 # Run the 'save' step using the main script in the src folder.
-save:
-	python3 src/main.py --function save --dataset datasets/churn-bigml-80.csv --model_filename decision_tree_model.joblib
+save: install-deps
+	./venv/bin/python src/main.py --function save --dataset datasets/churn-bigml-80.csv --model_filename decision_tree_model.joblib
 
 # Run the 'load' step using the main script in the src folder.
-load:
-	python3 src/main.py --function load --model_filename decision_tree_model.joblib
+load: install-deps
+	./venv/bin/python src/main.py --function load --model_filename decision_tree_model.joblib
 
 # Run the full pipeline (all steps) using the main script in the src folder.
-# This target first checks dependencies, then runs the pipeline.
 all: install-deps
-	python3 src/main.py --function all --dataset datasets/churn-bigml-80.csv --model_filename decision_tree_model.joblib
+	./venv/bin/python src/main.py --function all --dataset datasets/churn-bigml-80.csv --model_filename decision_tree_model.joblib
 
 # Run basic tests (requires pytest).
-tests:
-	pytest
+tests: install-deps
+	./venv/bin/pytest
 
 # Code quality check using flake8.
-lint:
-	flake8 .
+lint: install-deps
+	./venv/bin/flake8 .
 
 # Code formatting check using black.
-format:
-	black --check .
+format: install-deps
+	./venv/bin/black --check .
 
 # CI target runs lint, format, and tests.
 ci: lint format tests
@@ -61,6 +69,8 @@ ci: lint format tests
 # Clean up generated cache files.
 clean:
 	find . -name "__pycache__" -type d -exec rm -rf {} +
+
+# Docker-related targets below are unchanged
 
 # Create Docker network for services
 network:
@@ -122,7 +132,7 @@ mlflow-local:
 
 # Run the FastAPI application using Uvicorn directly.
 fastapi:
-	uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
+	./venv/bin/uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
 
 # Run MLflow UI with SQLite backend directly.
 mlflow-ui:
@@ -171,7 +181,7 @@ run-with-local-mlflow: network docker-build
 # New target to run the Flask application.
 flask:
 	@echo "Starting Flask application..."
-	python3 src/app_flask.py
+	./venv/bin/python src/app_flask.py
 
 # Stop all containers
 stop:
