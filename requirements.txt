@@ -1,0 +1,27 @@
+#Core Ml libraries
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+jupyter
+joblib
+psutil
+
+
+#fastapi and web components
+fastapi
+uvicorn
+pydantic
+flask
+flask-cors
+
+
+#mlflow and tracking
+mlflow
+psycopg2-binary
+
+# Testing and development
+pytest
+black
+flake8
