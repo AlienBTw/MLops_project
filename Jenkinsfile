@@ -4,9 +4,10 @@ pipeline {
     options {
         skipDefaultCheckout(true)
     }
-
+    
     environment {
         IMAGE_NAME = "ahmed_louay_araour_4ds2_mlops"
+        // Your local MLflow server tracking URI from your Makefile logic
         MLFLOW_TRACKING_URI = "http://localhost:5000"
     }
 
@@ -32,7 +33,7 @@ pipeline {
                 sh 'black --check . || true'
             }
         }
-        stage('Run Model Pipeline') {
+        stage('Run Pipeline with Makefile') {
             agent {
                 docker {
                     image 'python:3.9'
@@ -40,13 +41,9 @@ pipeline {
                 }
             }
             steps {
-                // Run your complete pipeline logic.
-                // This assumes your model_pipeline.py (or make all) encapsulates
-                // data preparation, training, evaluation, and saving the model.
-                // Choose one of the commands below based on your Makefile logic.
-                sh 'python model_pipeline.py'
-                // Alternatively, if your Makefile target "all" handles the pipeline, uncomment:
-                // sh 'make all'
+                // This stage runs the pipeline logic as defined in your Makefile's "all" target.
+                // Ensure the Makefile is correctly invoking all pipeline steps.
+                sh 'make all'
             }
         }
         stage('Build Docker Image') {
@@ -61,8 +58,8 @@ pipeline {
                 docker stop model_pipeline || true
                 docker rm model_pipeline || true
 
-                # Launch the container with your built Docker image.
-                # This container will run the model_pipeline.py script.
+                # Deploy the container using the built Docker image.
+                # It will run the model pipeline code, and connect to the local MLflow server.
                 docker run -d --name model_pipeline \\
                     -e MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI} \\
                     ${IMAGE_NAME} python model_pipeline.py
@@ -72,7 +69,9 @@ pipeline {
         stage('Check Logs') {
             steps {
                 sh '''
+                echo "Waiting for container to initialize..."
                 sleep 10
+                echo "------ Container Logs ------"
                 docker logs model_pipeline || true
                 '''
             }
@@ -81,13 +80,14 @@ pipeline {
 
     post {
         always {
+            echo "Cleaning up workspace..."
             cleanWs()
         }
         success {
-            echo "Build and model pipeline execution completed successfully."
+            echo "Pipeline run, build, and deployment completed successfully."
         }
         failure {
-            echo "Build or model pipeline execution failed. Please review the logs above."
+            echo "Pipeline run, build, or deployment failed. Please check the logs."
         }
     }
 }
