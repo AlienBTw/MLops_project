@@ -1,0 +1,15 @@
+artifact_uri: file:///home/louay/ahmed-louay-araour-4DS2-ml_project/mlruns/958183396298721015/ba3befce8a4e452fb0c2963f8f137dcd/artifacts
+end_time: 1740684488761
+entry_point_name: ''
+experiment_id: '958183396298721015'
+lifecycle_stage: active
+run_id: ba3befce8a4e452fb0c2963f8f137dcd
+run_name: victorious-wren-961
+run_uuid: ba3befce8a4e452fb0c2963f8f137dcd
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1740684481938
+status: 3
+tags: []
+user_id: louay

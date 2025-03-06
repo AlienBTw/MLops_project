@@ -1,0 +1,15 @@
+artifact_uri: file:///home/louay/ahmed-louay-araour-4DS2-ml_project/mlruns/958183396298721015/8ba402cb402d493f955869f7973731d3/artifacts
+end_time: 1740684256310
+entry_point_name: ''
+experiment_id: '958183396298721015'
+lifecycle_stage: active
+run_id: 8ba402cb402d493f955869f7973731d3
+run_name: clean-squirrel-356
+run_uuid: 8ba402cb402d493f955869f7973731d3
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1740684243032
+status: 3
+tags: []
+user_id: louay

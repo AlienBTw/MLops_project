@@ -1,0 +1,15 @@
+artifact_uri: file:///home/louay/ahmed-louay-araour-4DS2-ml_project/mlruns/958183396298721015/8421c10c90064c3c81a119b853062457/artifacts
+end_time: 1740684019543
+entry_point_name: ''
+experiment_id: '958183396298721015'
+lifecycle_stage: active
+run_id: 8421c10c90064c3c81a119b853062457
+run_name: luminous-colt-801
+run_uuid: 8421c10c90064c3c81a119b853062457
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1740684009772
+status: 3
+tags: []
+user_id: louay
