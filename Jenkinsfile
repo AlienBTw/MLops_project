@@ -1,14 +1,16 @@
 pipeline {
     agent any
-    
+
     options {
         // Clean workspace before each build
         skipDefaultCheckout(true)
     }
-    
+
     environment {
         DOCKER_USERNAME = "yourname"
         IMAGE_NAME = "ahmed_louay_araour_4ds2_mlops"
+        // Set MLflow tracking URI to the local instance running on the host
+        MLFLOW_TRACKING_URI = "http://localhost:5000"
     }
 
     stages {
@@ -38,36 +40,27 @@ pipeline {
                 sh 'docker build -t ${IMAGE_NAME} .'
             }
         }
-        stage('Deploy Containers') {
+        stage('Deploy Model Pipeline') {
             steps {
                 sh '''
-                # Create network if not exists
+                # Create network if needed (optional)
                 docker network create ml_network || true
 
-                # Stop and remove any existing mlflow server container.
-                docker stop mlflow_server || true
-                docker rm mlflow_server || true
-                
-                # Launch MLflow server container using the official mlflow image.
-                docker run -d --name mlflow_server \\
-                    --network ml_network \\
-                    -p 5000:5000 \\
-                    mlflow/mlflow:latest \\
-                    mlflow server --default-artifact-root file:/tmp/mlruns --host 0.0.0.0 --port 5000
-                
-                # Stop and remove any existing model pipeline container.
+                # Stop and remove any existing model_pipeline container.
                 docker stop model_pipeline || true
                 docker rm model_pipeline || true
-                
+
                 # Launch the container that runs your model pipeline.
+                # It is assumed that your model_pipeline.py is in the image's root directory.
                 docker run -d --name model_pipeline \\
                     --network ml_network \\
+                    -e MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI} \\
                     ${IMAGE_NAME} python model_pipeline.py
                 '''
             }
         }
     }
-    
+
     post {
         always {
             cleanWs()
