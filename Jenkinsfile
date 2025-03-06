@@ -2,19 +2,18 @@ pipeline {
     agent any
 
     options {
-        // Clean workspace before each build
         skipDefaultCheckout(true)
     }
 
     environment {
-        DOCKER_USERNAME = "yourname"
+        // Name of the Docker image built by the Makefile logic
         IMAGE_NAME = "ahmed_louay_araour_4ds2_mlops"
-        // Set MLflow tracking URI to the local instance running on the host
+        // MLflow tracking URI using your locally running MLflow instance, as set in your Makefile target "run-with-local-mlflow"
         MLFLOW_TRACKING_URI = "http://localhost:5000"
     }
 
     stages {
-        stage('Clean Workspace') {
+        stage('Clean Workspace and Checkout') {
             steps {
                 cleanWs()
                 checkout scm
@@ -37,39 +36,50 @@ pipeline {
         }
         stage('Build Docker Image') {
             steps {
+                // Build the Docker image using the same context as your Makefile's "all" target
                 sh 'docker build -t ${IMAGE_NAME} .'
             }
         }
-        stage('Deploy Model Pipeline') {
+        stage('Run Model Pipeline') {
             steps {
                 sh '''
-                # Create network if needed (optional)
-                docker network create ml_network || true
-
-                # Stop and remove any existing model_pipeline container.
+                # Stop and remove any existing container running the model pipeline, similar to Makefile cleanup
                 docker stop model_pipeline || true
                 docker rm model_pipeline || true
 
-                # Launch the container that runs your model pipeline.
-                # It is assumed that your model_pipeline.py is in the image's root directory.
+                # Run the container using the image built above.
+                # This container executes the model_pipeline.py which contains 
+                # the logic for preparing data, training, evaluating, and saving the model,
+                # while connecting to your local MLflow server as defined in your Makefile.
                 docker run -d --name model_pipeline \\
-                    --network ml_network \\
                     -e MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI} \\
                     ${IMAGE_NAME} python model_pipeline.py
                 '''
             }
         }
+        // Optional stage to check container logs for debugging purposes
+        stage('Check Logs') {
+            steps {
+                sh '''
+                echo "Waiting for model pipeline to initialize..."
+                sleep 10
+                echo "------ Container Logs for model_pipeline ------"
+                docker logs model_pipeline || true
+                '''
+            }
+        }
     }
-
+    
     post {
         always {
+            echo "Cleaning up workspace..."
             cleanWs()
         }
         success {
-            echo 'Build succeeded!'
+            echo "Build and model pipeline execution completed successfully."
         }
         failure {
-            echo 'Build failed!'
+            echo "Build or model pipeline execution failed. Please review the logs above."
         }
     }
 }
