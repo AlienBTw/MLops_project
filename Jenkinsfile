@@ -9,6 +9,9 @@ pipeline {
         IMAGE_NAME = "ahmed_louay_araour_4ds2_mlops"
         // Your local MLflow server tracking URI from your Makefile logic
         MLFLOW_TRACKING_URI = "http://localhost:5000"
+        // Ensure DOCKER_USERNAME and DOCKER_PASSWORD are configured in your Jenkins environment or credentials
+        DOCKER_USERNAME = credentials('alienbtw')
+        DOCKER_PASSWORD = credentials('9533985tkl')
     }
 
     stages {
@@ -65,6 +68,18 @@ pipeline {
                 '''
             }
         }
+        stage('Push to Docker Hub') {
+            steps {
+                sh '''
+                # Login to Docker Hub using the provided credentials.
+                echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                # Tag the image for Docker Hub.
+                docker tag ${IMAGE_NAME} ${DOCKER_USERNAME}/${IMAGE_NAME}
+                # Push the image to Docker Hub.
+                docker push ${DOCKER_USERNAME}/${IMAGE_NAME}
+                '''
+            }
+        }
         stage('Check Logs') {
             steps {
                 sh '''
@@ -83,10 +98,10 @@ pipeline {
             cleanWs()
         }
         success {
-            echo "Pipeline run, build, and deployment completed successfully."
+            echo "Pipeline run, build, deployment, and push completed successfully."
         }
         failure {
-            echo "Pipeline run, build, or deployment failed. Please check the logs."
+            echo "Pipeline run, build, deployment or push failed. Please check the logs."
         }
     }
 }
