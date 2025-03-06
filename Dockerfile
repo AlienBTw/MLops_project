@@ -1,31 +1,21 @@
 FROM python:3.9-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-# Set Python path to include app directory
-ENV PYTHONPATH="/app:${PYTHONPATH}"
-
-# Set working directory
 WORKDIR /app
 
-# Install dependencies
+# Copy and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy data and model files first
-COPY datasets/ ./datasets/
+# Copy application code and model files
+COPY src/ ./src/
 COPY decision_tree_model.joblib* ./
 COPY model_feature_columns.joblib* ./
 
-# Copy project files
-COPY . .
+# Expose the port used by app_flask.py (in your file, it runs on port 5001)
+EXPOSE 5001
 
-# Create empty __init__.py in src directory if it doesn't exist
-RUN if [ ! -f "src/__init__.py" ]; then touch src/__init__.py; fi
+# Set the MLflow tracking URI to point to the host machine (adjust if necessary)
+ENV MLFLOW_TRACKING_URI="http://host.docker.internal:5000"
 
-# Expose port for FastAPI
-EXPOSE 8000
-
-# Command to run the FastAPI application
-CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"]
+# Run the Flask application by launching app_flask.py
+CMD ["python", "src/app_flask.py"]

@@ -1,24 +1,23 @@
 pipeline {
     agent any
-    
+
     options {
-        // Clean workspace before each build
         skipDefaultCheckout(true)
     }
     
     environment {
-        DOCKER_USERNAME = "yourname"
         IMAGE_NAME = "ahmed_louay_araour_4ds2_mlops"
+        // Your local MLflow server tracking URI from your Makefile logic
+        MLFLOW_TRACKING_URI = "http://localhost:5000"
     }
 
     stages {
-        stage('Clean Workspace') {
+        stage('Clean Workspace and Checkout') {
             steps {
                 cleanWs()
                 checkout scm
             }
         }
-        // Rest of your stages...
         stage('Install Dependencies & Run Tests') {
             agent {
                 docker {
@@ -29,9 +28,21 @@ pipeline {
             steps {
                 sh 'pip install -r requirements.txt'
                 sh 'pip install pytest flake8 black'
-                sh 'pytest || true' 
+                sh 'pytest || true'
                 sh 'flake8 . || true'
                 sh 'black --check . || true'
+            }
+        }
+        stage('Run Full Pipeline') {
+            agent {
+                docker {
+                    image 'python:3.9'
+                    reuseNode true
+                }
+            }
+            steps {
+                // Run the full pipeline as defined by the "all" target in your Makefile.
+                sh 'make all'
             }
         }
         stage('Build Docker Image') {
@@ -39,30 +50,43 @@ pipeline {
                 sh 'docker build -t ${IMAGE_NAME} .'
             }
         }
-        stage('Deploy Containers') {
+        stage('Deploy Container') {
             steps {
                 sh '''
-                docker network create ml_network || true
-                docker stop fastapi_mlflow_app || true
-                docker rm fastapi_mlflow_app || true
-                docker run -d --name fastapi_mlflow_app \
-                    --network ml_network \
-                    -p 8000:8000 \
-                    ${IMAGE_NAME}
+                # Stop and remove any existing container running the model pipeline.
+                docker stop model_pipeline || true
+                docker rm model_pipeline || true
+
+                # Deploy the container using the built Docker image.
+                # It will run the model pipeline code, and connect to the local MLflow server.
+                docker run -d --name model_pipeline \\
+                    -e MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI} \\
+                    ${IMAGE_NAME} python model_pipeline.py
+                '''
+            }
+        }
+        stage('Check Logs') {
+            steps {
+                sh '''
+                echo "Waiting for container to initialize..."
+                sleep 10
+                echo "------ Container Logs ------"
+                docker logs model_pipeline || true
                 '''
             }
         }
     }
-    
+
     post {
         always {
+            echo "Cleaning up workspace..."
             cleanWs()
         }
         success {
-            echo 'Build succeeded!'
+            echo "Pipeline run, build, and deployment completed successfully."
         }
         failure {
-            echo 'Build failed!'
+            echo "Pipeline run, build, or deployment failed. Please check the logs."
         }
     }
 }

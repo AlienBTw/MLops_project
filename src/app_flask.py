@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template,send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
 import joblib
 import os
 import pandas as pd
@@ -8,7 +8,7 @@ import mlflow.sklearn
 from datetime import datetime
 
 # Set MLflow tracking URI from environment variable
-mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
+mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "http://host.docker.internal:5000")
 mlflow.set_tracking_uri(mlflow_tracking_uri)
 print(f"MLflow tracking URI: {mlflow_tracking_uri}")
 
@@ -73,8 +73,26 @@ def preprocess_input(input_data):
         training_columns = joblib.load(FEATURE_COLUMNS_PATH)
         data = data.reindex(columns=training_columns, fill_value=0)
     else:
-        return None, "Training feature columns not found. Please retrain the model."
+        return None, "Training feature columns not found. Please train the model first."
     return data, None
+
+def prepare_data_internal(dataset_path):
+    """
+    Read the CSV dataset, perform one-hot encoding (using pd.get_dummies),
+    and split the data into training and testing sets.
+    Returns training and testing features/labels and a list of feature columns.
+    """
+    df = pd.read_csv(dataset_path)
+    print(f"Dataset loaded. Columns: {df.columns.tolist()}")
+    target_column = "Churn"
+    print(f"Using '{target_column}' as target variable")
+    X = df.drop(target_column, axis=1)
+    y = df[target_column]
+    X = pd.get_dummies(X, drop_first=True)
+    print(f"Encoded features: {X.columns.tolist()}")
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    return X_train, X_test, y_train, y_test, X.columns.tolist()
 
 def load_resources():
     global model, feature_columns
@@ -102,7 +120,7 @@ def predict():
     """
     try:
         if model is None:
-            return jsonify({"error": "Model not loaded. Please retrain the model first."}), 500
+            return jsonify({"error": "Model not loaded. Please train the model first."}), 500
         
         input_data = request.get_json()
         
@@ -130,56 +148,47 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route("/retrain", methods=["POST"])
-def retrain():
+@app.route("/train-evaluate", methods=["POST"])
+def train_and_evaluate():
     """
-    Retrain the model with a new max_depth hyperparameter.
-    Saves the model locally using joblib and logs it to MLflow.
+    Prepares the data, trains the model with a specified max_depth (if provided), 
+    evaluates the model performance on the test set, and logs
+    the metrics to MLflow. Returns training details and evaluation metrics.
     """
     try:
         request_data = request.get_json()
-        
-        if 'max_depth' not in request_data:
-            return jsonify({"error": "max_depth parameter is required"}), 400
-            
-        max_depth = request_data['max_depth']
-        if not isinstance(max_depth, int):
+        max_depth = request_data.get('max_depth', None)
+        if max_depth is not None and not isinstance(max_depth, int):
             return jsonify({"error": "max_depth must be an integer"}), 400
         
-        from sklearn.tree import DecisionTreeClassifier
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-        
-        def prepare_data_internal(dataset_path):
-            df = pd.read_csv(dataset_path)
-            print(f"Dataset loaded. Columns: {df.columns.tolist()}")
-            target_column = "Churn"
-            print(f"Using '{target_column}' as target variable")
-            X = df.drop(target_column, axis=1)
-            y = df[target_column]
-            X = pd.get_dummies(X, drop_first=True)
-            print(f"Encoded features: {X.columns.tolist()}")
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-            return X_train, X_test, y_train, y_test, X.columns.tolist()
+        # Set a default max_depth if not provided
+        if max_depth is None:
+            max_depth = 5
         
         dataset_path = os.path.join("datasets", "churn-bigml-80.csv")
         if not os.path.exists(dataset_path):
             return jsonify({"error": f"Dataset not found at {dataset_path}"}), 404
         
+        # Prepare the data       
+        X_train, X_test, y_train, y_test, feature_cols = prepare_data_internal(dataset_path)
+        
+        import traceback
+        from sklearn.tree import DecisionTreeClassifier
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+        
         with mlflow.start_run() as run:
             mlflow.log_param("max_depth", max_depth)
-            print(f"Reading dataset from {dataset_path}")
-            X_train, X_test, y_train, y_test, feature_cols = prepare_data_internal(dataset_path)
-            
             print(f"Training model with max_depth={max_depth}")
             new_model = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
             new_model.fit(X_train, y_train)
             
+            # Save the model and feature columns
             joblib.dump(new_model, MODEL_PATH)
             joblib.dump(feature_cols, FEATURE_COLUMNS_PATH)
             print(f"Model saved to {MODEL_PATH}")
             print(f"Feature columns saved to {FEATURE_COLUMNS_PATH}")
             
+            # Evaluate the model
             y_pred = new_model.predict(X_test)
             accuracy = accuracy_score(y_test, y_pred)
             precision = precision_score(y_test, y_pred, zero_division=0)
@@ -197,17 +206,19 @@ def retrain():
                 registered_model_name="ChurnPredictionModel"
             )
             
+            # Optionally log feature columns as an artifact
             temp_feature_cols_path = "temp_feature_columns.joblib"
             joblib.dump(feature_cols, temp_feature_cols_path)
             mlflow.log_artifact(temp_feature_cols_path)
             os.remove(temp_feature_cols_path)
             
+            # Update global variables after training
             global model, feature_columns
             model = new_model
             feature_columns = feature_cols
             
             return jsonify({
-                "detail": "Model retrained successfully", 
+                "detail": "Model trained and evaluated successfully", 
                 "max_depth": max_depth, 
                 "accuracy": float(accuracy),
                 "precision": float(precision),
@@ -219,7 +230,7 @@ def retrain():
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
-        print(f"Error during retraining: {str(e)}\n{error_trace}")
+        print(f"Error during training and evaluation: {str(e)}\n{error_trace}")
         return jsonify({"error": str(e)}), 400
 
 @app.route("/debug")
