@@ -49,11 +49,11 @@ pipeline {
                 docker rm mlflow_server || true
                 
                 # Launch the MLflow server container using the official mlflow image.
-                docker run -d --name mlflow_server \\
-                    --network ml_network \\
-                    -p 5000:5000 \\
-                    mlflow/mlflow:latest \\
-                    mlflow server --default-artifact-root file:/tmp/mlruns --host 0.0.0.0 --port 5000
+                docker run -d --name mlflow_server \
+                --network ml_network \
+                -p 5001:5000 \
+                mlflow/mlflow:latest \
+                mlflow server --default-artifact-root file:/tmp/mlruns --host 0.0.0.0 --port 5000
                 
                 # Stop and remove any existing model_pipeline container.
                 docker stop model_pipeline || true
