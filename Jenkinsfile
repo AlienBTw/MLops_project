@@ -41,13 +41,28 @@ pipeline {
         stage('Deploy Containers') {
             steps {
                 sh '''
+                # Create network if not exists
                 docker network create ml_network || true
-                docker stop flask_mlflow_app || true
-                docker rm flask_mlflow_app || true
-                docker run -d --name flask_mlflow_app \
-                    --network ml_network \
-                    -p 5001:5001 \
-                    ${IMAGE_NAME}
+
+                # Stop and remove any existing mlflow server container.
+                docker stop mlflow_server || true
+                docker rm mlflow_server || true
+                
+                # Launch MLflow server container using the official mlflow image.
+                docker run -d --name mlflow_server \\
+                    --network ml_network \\
+                    -p 5000:5000 \\
+                    mlflow/mlflow:latest \\
+                    mlflow server --default-artifact-root file:/tmp/mlruns --host 0.0.0.0 --port 5000
+                
+                # Stop and remove any existing model pipeline container.
+                docker stop model_pipeline || true
+                docker rm model_pipeline || true
+                
+                # Launch the container that runs your model pipeline.
+                docker run -d --name model_pipeline \\
+                    --network ml_network \\
+                    ${IMAGE_NAME} python model_pipeline.py
                 '''
             }
         }
