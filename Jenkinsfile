@@ -33,7 +33,7 @@ pipeline {
                 sh 'black --check . || true'
             }
         }
-        stage('Run Pipeline with Makefile') {
+        stage('Run Full Pipeline') {
             agent {
                 docker {
                     image 'python:3.9'
@@ -41,8 +41,7 @@ pipeline {
                 }
             }
             steps {
-                // This stage runs the pipeline logic as defined in your Makefile's "all" target.
-                // Ensure the Makefile is correctly invoking all pipeline steps.
+                // Run the full pipeline as defined by the "all" target in your Makefile.
                 sh 'make all'
             }
         }
