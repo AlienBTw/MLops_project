@@ -117,20 +117,20 @@ def load_model(model_filename):
     print(f"Model loaded from {model_filename}.")
     return model
 
-def send_email_notification(subject, message, receiver_email="ahmedlouay.araour@esprit.tn"):
+def send_email_notification(subject, message, receiver_email="add your reciever email"):
     """
     Send an email notification using Gmail's SMTP server.
     
     Default settings:
         SMTP server: smtp.gmail.com
         SMTP port: 587
-        SMTP user: louparour10@gmail.com
+        SMTP user: 
         SMTP password: retrieved from SMTP_PASSWORD environment variable or default provided.
     """
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    smtp_user = "louparour10@gmail.com"
-    smtp_password = os.environ.get("SMTP_PASSWORD", "xpfs ffdo pxxw zqut")
+    smtp_user = "Add the sender email"  
+    smtp_password = os.environ.get("SMTP_PASSWORD", "replace with your password from google passwords")
     sender_email = smtp_user
     
     msg = MIMEText(message)
