@@ -7,6 +7,12 @@ import mlflow
 import mlflow.sklearn
 from datetime import datetime
 
+# Add the project root to Python path (before the import)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+# Import our Elasticsearch logger
+from logging_config import logger
+
 # Set MLflow tracking URI from environment variable
 mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "http://host.docker.internal:5000")
 mlflow.set_tracking_uri(mlflow_tracking_uri)
@@ -15,9 +21,6 @@ print(f"MLflow tracking URI: {mlflow_tracking_uri}")
 # Set experiment name
 experiment_name = "Ahmed-Louay-Araour-4DS2-ML"
 mlflow.set_experiment(experiment_name)
-
-# Add the project root to Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Paths to the trained model and feature columns file
 MODEL_PATH = "decision_tree_model.joblib"
@@ -152,8 +155,9 @@ def predict():
 def train_and_evaluate():
     """
     Prepares the data, trains the model with a specified max_depth (if provided), 
-    evaluates the model performance on the test set, and logs
-    the metrics to MLflow. Returns training details and evaluation metrics.
+    evaluates the model performance on the test set, logs metrics to MLflow,
+    and sends log events to Elasticsearch.
+    Returns training details and evaluation metrics.
     """
     try:
         request_data = request.get_json()
@@ -167,26 +171,27 @@ def train_and_evaluate():
         
         dataset_path = os.path.join("datasets", "churn-bigml-80.csv")
         if not os.path.exists(dataset_path):
-            return jsonify({"error": f"Dataset not found at {dataset_path}"}), 404
+            error_msg = f"Dataset not found at {dataset_path}"
+            logger.error(error_msg)
+            return jsonify({"error": error_msg}), 404
         
         # Prepare the data       
         X_train, X_test, y_train, y_test, feature_cols = prepare_data_internal(dataset_path)
         
-        import traceback
         from sklearn.tree import DecisionTreeClassifier
         from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
         
         with mlflow.start_run() as run:
             mlflow.log_param("max_depth", max_depth)
-            print(f"Training model with max_depth={max_depth}")
+            logger.info(f"Training model with max_depth={max_depth}")
             new_model = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
             new_model.fit(X_train, y_train)
             
             # Save the model and feature columns
             joblib.dump(new_model, MODEL_PATH)
             joblib.dump(feature_cols, FEATURE_COLUMNS_PATH)
-            print(f"Model saved to {MODEL_PATH}")
-            print(f"Feature columns saved to {FEATURE_COLUMNS_PATH}")
+            logger.info(f"Model saved to {MODEL_PATH}")
+            logger.info(f"Feature columns saved to {FEATURE_COLUMNS_PATH}")
             
             # Evaluate the model
             y_pred = new_model.predict(X_test)
@@ -217,6 +222,9 @@ def train_and_evaluate():
             model = new_model
             feature_columns = feature_cols
             
+            # Log evaluation results to Elasticsearch via our logger
+            logger.info(f"Model evaluation metrics - Accuracy: {accuracy}, Precision: {precision}, Recall: {recall}, F1 Score: {f1}")
+            
             return jsonify({
                 "detail": "Model trained and evaluated successfully", 
                 "max_depth": max_depth, 
@@ -230,7 +238,7 @@ def train_and_evaluate():
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
-        print(f"Error during training and evaluation: {str(e)}\n{error_trace}")
+        logger.error(f"Error during training and evaluation: {str(e)}\n{error_trace}")
         return jsonify({"error": str(e)}), 400
 
 @app.route("/debug")
@@ -259,4 +267,5 @@ def root():
 if __name__ == "__main__":
     # Manually load resources before starting the server.
     load_resources()
-    app.run(debug=True, port=5001)
+    # Bind to 0.0.0.0 to accept connections from outside the container.
+    app.run(debug=True, host="0.0.0.0", port=5001)

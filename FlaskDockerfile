@@ -1,0 +1,13 @@
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY src/ ./src/
+COPY datasets/ ./datasets/
+COPY model_feature_columns.joblib* ./
+COPY decision_tree_model.joblib* ./
+COPY logging_config.py ./
+EXPOSE 5001
+ENV MLFLOW_TRACKING_URI="http://host.docker.internal:5000"
+ENV ELASTICSEARCH_HOST="elasticsearch"
+CMD ["python", "src/app_flask.py"]

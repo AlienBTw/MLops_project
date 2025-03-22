@@ -37,6 +37,7 @@
     <div class="container">
         <h1>Churn Prediction API</h1>
         
+        <!-- Prediction Form -->
         <h2>Make a Prediction</h2>
         <form id="predict-form">
             <div class="form-group">
@@ -115,7 +116,8 @@
         </form>
         <div class="result" id="prediction-result"></div>
 
-    <!--    <h2>Retrain the Model</h2>
+        <!-- Retrain Form -->
+        <h2>Retrain the Model</h2>
         <form id="retrain-form">
             <div class="form-group">
                 <label for="max_depth">Max Depth:</label>
@@ -123,10 +125,11 @@
             </div>
             <button type="submit">Retrain</button>
         </form>
-        <div class="result" id="retrain-result"></div>-->
+        <div class="result" id="retrain-result"></div>
     </div>
 
     <script>
+        // Prediction Form Submission
         document.getElementById('predict-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -144,12 +147,16 @@
             document.getElementById('prediction-result').innerText = result.prediction || result.error;
         });
 
+        // Retrain Form Submission
         document.getElementById('retrain-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
 
-            const response = await fetch('/retrain', {
+            // Convert max_depth to an integer
+            data.max_depth = parseInt(data.max_depth, 10);
+
+            const response = await fetch('/train-evaluate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -163,28 +170,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-<script>
-    document.getElementById('retrain-form').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        const data = Object.fromEntries(formData.entries());
-
-        // Convert max_depth to an integer
-        data.max_depth = parseInt(data.max_depth, 10);
-
-        const response = await fetch('/retrain', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-        document.getElementById('retrain-result').innerText = JSON.stringify(result, null, 2);
-    });
-</script>
